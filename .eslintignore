@@ -5,6 +5,7 @@ tests
 __tests__
 __mocks__
 coverage
+scripts
 jest.config.js
 webpack.config.js
 .eslintignore

@@ -1,10 +1,12 @@
 {
   "devDependencies": {
+    "@ncpa0cpl/nodepack": "^2.0.1",
     "@swc/core": "^1.2.246",
     "@swc/jest": "^0.2.22",
     "@types/jest": "^29.0.0",
     "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
+    "esbuild": "^0.15.7",
     "eslint": "^8.23.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
@@ -16,9 +18,17 @@
     "prettier-plugin-jsdoc": "^0.4.2",
     "typescript": "^4.8.2"
   },
-  "name": "repository-mutex",
+  "name": "mutex-decorators",
   "version": "1.0.0",
-  "main": "./dist/index.js",
+  "main": "./dist/legacy/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
+    }
+  },
   "scripts": {
     "fix:lint": "eslint --fix .",
     "fix:prettier": "prettier -w ./src .",
@@ -26,7 +36,7 @@
     "test:lint": "eslint .",
     "test:prettier": "prettier -c ./src && prettier -c ./__tests__",
     "test:tsc": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "node ./scripts/build.mjs"
   },
   "keywords": [],
   "repository": {
