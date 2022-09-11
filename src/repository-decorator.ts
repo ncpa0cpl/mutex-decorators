@@ -6,14 +6,20 @@ import { MutexStore } from "./mutex-store";
 import { removeDuplicates } from "./utilities/remove-duplicates";
 
 export const RWLockRepository = (
-  RepositoryClass: new (...args: any) => any
+  RepositoryClass: any,
+  a?: any,
+  b?: any,
+  isStatic = false,
+  mutexStore?: MutexStore
 ): any => {
   const operationFunctionNames = getOperationFunctions(
     RepositoryClass.prototype
   );
-  const mutexStore = new MutexStore();
+  mutexStore = mutexStore ?? new MutexStore();
 
   for (const operationFunctionName of operationFunctionNames) {
+    if (!(operationFunctionName in RepositoryClass.prototype)) continue;
+
     const operationFunction = RepositoryClass.prototype[operationFunctionName];
 
     const isRead = isReadOperation(
@@ -88,5 +94,8 @@ export const RWLockRepository = (
     }
   }
 
+  if (!isStatic) {
+    RWLockRepository({ prototype: RepositoryClass }, a, b, true, mutexStore);
+  }
   return RepositoryClass;
 };
