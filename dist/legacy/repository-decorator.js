@@ -29,12 +29,14 @@ var import_resource_id = require("./metadata-decorators/resource-id.js");
 var import_write_decorator = require("./metadata-decorators/write-decorator.js");
 var import_mutex_store = require("./mutex-store.js");
 var import_remove_duplicates = require("./utilities/remove-duplicates.js");
-var RWLockRepository = (RepositoryClass) => {
+var RWLockRepository = (RepositoryClass, a, b, isStatic = false, mutexStore) => {
   const operationFunctionNames = (0, import_operation_functions.getOperationFunctions)(
     RepositoryClass.prototype
   );
-  const mutexStore = new import_mutex_store.MutexStore();
+  mutexStore = mutexStore ?? new import_mutex_store.MutexStore();
   for (const operationFunctionName of operationFunctionNames) {
+    if (!(operationFunctionName in RepositoryClass.prototype))
+      continue;
     const operationFunction = RepositoryClass.prototype[operationFunctionName];
     const isRead = (0, import_read_decorator.isReadOperation)(
       RepositoryClass.prototype,
@@ -87,6 +89,9 @@ var RWLockRepository = (RepositoryClass) => {
         _RWRepository_mutexStore: mutexStore
       });
     }
+  }
+  if (!isStatic) {
+    RWLockRepository({ prototype: RepositoryClass }, a, b, true, mutexStore);
   }
   return RepositoryClass;
 };

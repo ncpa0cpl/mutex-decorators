@@ -5,12 +5,14 @@ import { getResourceIdIndex } from "./metadata-decorators/resource-id.mjs";
 import { isWriteOperation } from "./metadata-decorators/write-decorator.mjs";
 import { MutexStore } from "./mutex-store.mjs";
 import { removeDuplicates } from "./utilities/remove-duplicates.mjs";
-var RWLockRepository = (RepositoryClass) => {
+var RWLockRepository = (RepositoryClass, a, b, isStatic = false, mutexStore) => {
   const operationFunctionNames = getOperationFunctions(
     RepositoryClass.prototype
   );
-  const mutexStore = new MutexStore();
+  mutexStore = mutexStore ?? new MutexStore();
   for (const operationFunctionName of operationFunctionNames) {
+    if (!(operationFunctionName in RepositoryClass.prototype))
+      continue;
     const operationFunction = RepositoryClass.prototype[operationFunctionName];
     const isRead = isReadOperation(
       RepositoryClass.prototype,
@@ -63,6 +65,9 @@ var RWLockRepository = (RepositoryClass) => {
         _RWRepository_mutexStore: mutexStore
       });
     }
+  }
+  if (!isStatic) {
+    RWLockRepository({ prototype: RepositoryClass }, a, b, true, mutexStore);
   }
   return RepositoryClass;
 };
