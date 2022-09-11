@@ -7,7 +7,7 @@ import { removeDuplicates } from "./utilities/remove-duplicates";
 
 export const RWLockRepository = (
   RepositoryClass: new (...args: any) => any
-) => {
+): any => {
   const operationFunctionNames = getOperationFunctions(
     RepositoryClass.prototype
   );
