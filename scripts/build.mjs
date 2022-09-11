@@ -12,7 +12,7 @@ try {
     target: "ESNext",
     srcDir: relp("../src"),
     outDir: relp("../dist"),
-    tsConfig: relp("../tsconfig.json"),
+    tsConfig: relp("../tsconfig.build.json"),
     formats: ["cjs", "esm", "legacy"],
     declarations: true,
   });
