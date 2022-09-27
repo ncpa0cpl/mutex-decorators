@@ -1,4 +1,4 @@
-import { Read, ResourceID, RWLockRepository, Write } from "../src/index";
+import { Read, ResourceID, RWMutexRepo, Write } from "../src/index";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -9,10 +9,10 @@ const isResolved = async (promise: Promise<any>) => {
   return resolved;
 };
 
-describe("RWLockRepository", () => {
+describe("RWMutexRepo", () => {
   describe("on regular class", () => {
     it("correctly wraps method decorated with Write", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         async writeMethod(@ResourceID resourceId: string) {
@@ -29,7 +29,7 @@ describe("RWLockRepository", () => {
     });
 
     it("correctly wraps method decorated with Read", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         async readMethod(@ResourceID resourceId: string) {
@@ -46,7 +46,7 @@ describe("RWLockRepository", () => {
     });
 
     it("correctly wraps method decorated with Read and Write", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         @Write
@@ -66,7 +66,7 @@ describe("RWLockRepository", () => {
     it("correctly mutually excludes write operations", async () => {
       const operations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         async writeMethod(@ResourceID resourceId: string) {
@@ -85,6 +85,8 @@ describe("RWLockRepository", () => {
       const write1R2 = testRepository.writeMethod("2");
       const write2R2 = testRepository.writeMethod("2");
       const write3R2 = testRepository.writeMethod("2");
+
+      await sleep(20);
 
       expect(await isResolved(write1R1)).toBe(false);
       expect(await isResolved(write2R1)).toBe(false);
@@ -153,7 +155,7 @@ describe("RWLockRepository", () => {
     it("should allow for multiple parallel reads", async () => {
       const operations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         async readMethod(@ResourceID resourceId: string) {
@@ -184,7 +186,7 @@ describe("RWLockRepository", () => {
       const writeOperations: Array<{ finish(): void }> = [];
       const readOperations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         async writeMethod(@ResourceID resourceId: string) {
@@ -207,6 +209,8 @@ describe("RWLockRepository", () => {
       const read2R1 = testRepository.readMethod("1");
 
       const write1R1 = testRepository.writeMethod("1");
+
+      await sleep(20);
 
       expect(await isResolved(read1R1)).toBe(false);
       expect(await isResolved(read2R1)).toBe(false);
@@ -235,7 +239,7 @@ describe("RWLockRepository", () => {
       const writeOperations: Array<{ finish(): void }> = [];
       const readOperations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         async writeMethod(@ResourceID resourceId: string) {
@@ -258,6 +262,8 @@ describe("RWLockRepository", () => {
 
       const read1R1 = testRepository.readMethod("1");
       const read2R1 = testRepository.readMethod("1");
+
+      await sleep(20);
 
       expect(await isResolved(write1R1)).toBe(false);
       expect(await isResolved(read1R1)).toBe(false);
@@ -285,7 +291,7 @@ describe("RWLockRepository", () => {
 
   describe("on static class", () => {
     it("correctly wraps method decorated with Write", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         static async writeMethod(@ResourceID resourceId: string) {
@@ -302,7 +308,7 @@ describe("RWLockRepository", () => {
     });
 
     it("correctly wraps method decorated with Read", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         static async readMethod(@ResourceID resourceId: string) {
@@ -319,7 +325,7 @@ describe("RWLockRepository", () => {
     });
 
     it("correctly wraps method decorated with Read and Write", () => {
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         @Write
@@ -339,7 +345,7 @@ describe("RWLockRepository", () => {
     it("correctly mutually excludes write operations", async () => {
       const operations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         static async writeMethod(@ResourceID resourceId: string) {
@@ -358,6 +364,8 @@ describe("RWLockRepository", () => {
       const write1R2 = testRepository.writeMethod("2");
       const write2R2 = testRepository.writeMethod("2");
       const write3R2 = testRepository.writeMethod("2");
+
+      await sleep(20);
 
       expect(await isResolved(write1R1)).toBe(false);
       expect(await isResolved(write2R1)).toBe(false);
@@ -426,7 +434,7 @@ describe("RWLockRepository", () => {
     it("should allow for multiple parallel reads", async () => {
       const operations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Read
         static async readMethod(@ResourceID resourceId: string) {
@@ -457,7 +465,7 @@ describe("RWLockRepository", () => {
       const writeOperations: Array<{ finish(): void }> = [];
       const readOperations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         static async writeMethod(@ResourceID resourceId: string) {
@@ -480,6 +488,8 @@ describe("RWLockRepository", () => {
       const read2R1 = testRepository.readMethod("1");
 
       const write1R1 = testRepository.writeMethod("1");
+
+      await sleep(20);
 
       expect(await isResolved(read1R1)).toBe(false);
       expect(await isResolved(read2R1)).toBe(false);
@@ -508,7 +518,7 @@ describe("RWLockRepository", () => {
       const writeOperations: Array<{ finish(): void }> = [];
       const readOperations: Array<{ finish(): void }> = [];
 
-      @RWLockRepository
+      @RWMutexRepo
       class TestRepository {
         @Write
         static async writeMethod(@ResourceID resourceId: string) {
@@ -531,6 +541,8 @@ describe("RWLockRepository", () => {
 
       const read1R1 = testRepository.readMethod("1");
       const read2R1 = testRepository.readMethod("1");
+
+      await sleep(20);
 
       expect(await isResolved(write1R1)).toBe(false);
       expect(await isResolved(read1R1)).toBe(false);
