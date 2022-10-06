@@ -1,8 +1,13 @@
 import { isLockedOperation } from "./metadata-decorators/lock-decorator";
 import { getOperationFunctions } from "./metadata-decorators/operation-functions";
 import { getResourceIdIndex } from "./metadata-decorators/resource-id";
+import { getResourceIDGetter } from "./metadata-decorators/resource-id-getter";
 import { MutexStore } from "./mutex-store";
 import { removeDuplicates } from "./utilities/remove-duplicates";
+import { validateResourceID } from "./utilities/validate-resource-id";
+
+type ResourceID = string | number | symbol | Array<string | number | symbol>;
+type ResourceGetter = (methodName: string | symbol, args: any[]) => ResourceID;
 
 /**
  * Adds mutual exclusion mechanism to the decorated class. Each
@@ -22,6 +27,14 @@ export const MutexRepo = (
   );
   mutexStore = mutexStore ?? new MutexStore();
 
+  const classResourceIDGetterName = getResourceIDGetter(
+    RepositoryClass.prototype
+  );
+
+  const classResourceIDGetter = classResourceIDGetterName
+    ? (RepositoryClass.prototype[classResourceIDGetterName] as ResourceGetter)
+    : undefined;
+
   for (const operationFunctionName of operationFunctionNames) {
     if (!(operationFunctionName in RepositoryClass.prototype)) continue;
 
@@ -37,7 +50,14 @@ export const MutexRepo = (
       operationFunctionName
     );
 
-    if (isLocked && resourceIdIndex !== undefined) {
+    const idGetter =
+      resourceIdIndex !== undefined
+        ? function (_: any, args: any[]) {
+            return args[resourceIdIndex] as ResourceID;
+          }
+        : classResourceIDGetter;
+
+    if (isLocked && idGetter !== undefined) {
       const acquireLocks = async (
         resourceIds: Array<string | number | symbol>
       ) => {
@@ -54,11 +74,8 @@ export const MutexRepo = (
       RepositoryClass.prototype[operationFunctionName] = async function (
         ...args: any[]
       ) {
-        const resourceID:
-          | string
-          | number
-          | symbol
-          | Array<string | number | symbol> = args[resourceIdIndex];
+        const resourceID = idGetter.apply(this, [operationFunctionName, args]);
+        validateResourceID(resourceID);
         const resourceIDList = removeDuplicates(
           Array.isArray(resourceID) ? resourceID : [resourceID]
         );
@@ -87,9 +104,9 @@ export const MutexRepo = (
         );
       }
 
-      if (resourceIdIndex === undefined) {
+      if (idGetter === undefined) {
         console.warn(
-          `Method "${operationFunctionName.toString()}" is not decorated with @ResourceID despite bring marked as a subject to the Mutex. This could be a mistake, make sure to add the appropriate decorators to this method.`
+          `Method "${operationFunctionName.toString()}" is not decorated with @ResourceID nor @ResourceIDGetter despite bring marked as a subject to the Mutex. This could be a mistake, make sure to add the appropriate decorators to this method.`
         );
       }
     }, 0);

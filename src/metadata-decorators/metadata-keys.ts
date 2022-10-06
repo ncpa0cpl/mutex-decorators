@@ -4,4 +4,5 @@ export enum MetadataKey {
   WRITE_OPERATION = "mutex:operation-type:write",
   LOCKED_OPERATION = "mutex:operation-type:locked",
   RESOURCE_ID = "mutex:operation:resource-id",
+  RESOURCE_ID_GETTER = "mutex:operation:resource-id-getter",
 }

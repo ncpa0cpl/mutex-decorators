@@ -1,4 +1,4 @@
-import { Lock, MutexRepo, ResourceID } from "../src/index";
+import { Lock, MutexRepo, ResourceID, ResourceIDGetter } from "../src/index";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -99,6 +99,86 @@ describe("MutexRepo", () => {
       expect(await isResolved(op3)).toBe(true);
       expect(await isResolved(op4)).toBe(true);
     });
+
+    it("should correctly use the ResourceID getter", async () => {
+      const operations: Array<{ finish(): void }> = [];
+
+      @MutexRepo
+      class TestRepository {
+        private id = "1";
+
+        @ResourceIDGetter
+        getResourceID() {
+          return this.id;
+        }
+
+        public counter = 0;
+
+        @Lock
+        public async foo() {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+
+        @Lock
+        public async bar() {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+      }
+
+      const testRepository = new TestRepository();
+
+      const op1 = testRepository.foo();
+      const op2 = testRepository.foo();
+      const op3 = testRepository.bar();
+      const op4 = testRepository.bar();
+
+      await sleep(20);
+
+      expect(await isResolved(op1)).toBe(false);
+      expect(await isResolved(op2)).toBe(false);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(1);
+
+      operations[0]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(false);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(2);
+
+      operations[1]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(3);
+
+      operations[2]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(true);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(4);
+
+      operations[3]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(true);
+      expect(await isResolved(op4)).toBe(true);
+    });
   });
 
   describe("on static class", () => {
@@ -146,6 +226,86 @@ describe("MutexRepo", () => {
       const op2 = testRepository.foo("1");
       const op3 = testRepository.bar("1");
       const op4 = testRepository.bar("1");
+
+      await sleep(20);
+
+      expect(await isResolved(op1)).toBe(false);
+      expect(await isResolved(op2)).toBe(false);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(1);
+
+      operations[0]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(false);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(2);
+
+      operations[1]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(false);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(3);
+
+      operations[2]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(true);
+      expect(await isResolved(op4)).toBe(false);
+
+      expect(operations.length).toBe(4);
+
+      operations[3]!.finish();
+
+      expect(await isResolved(op1)).toBe(true);
+      expect(await isResolved(op2)).toBe(true);
+      expect(await isResolved(op3)).toBe(true);
+      expect(await isResolved(op4)).toBe(true);
+    });
+
+    it("should correctly use the ResourceID getter", async () => {
+      const operations: Array<{ finish(): void }> = [];
+
+      @MutexRepo
+      class TestRepository {
+        private static id = "1";
+
+        @ResourceIDGetter
+        static getResourceID() {
+          return this.id;
+        }
+
+        public counter = 0;
+
+        @Lock
+        public static async foo() {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+
+        @Lock
+        public static async bar() {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+      }
+
+      const testRepository = TestRepository;
+
+      const op1 = testRepository.foo();
+      const op2 = testRepository.foo();
+      const op3 = testRepository.bar();
+      const op4 = testRepository.bar();
 
       await sleep(20);
 

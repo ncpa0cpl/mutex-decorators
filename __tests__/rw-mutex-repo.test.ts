@@ -1,4 +1,10 @@
-import { Read, ResourceID, RWMutexRepo, Write } from "../src/index";
+import {
+  Read,
+  ResourceID,
+  ResourceIDGetter,
+  RWMutexRepo,
+  Write,
+} from "../src/index";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -287,6 +293,103 @@ describe("RWMutexRepo", () => {
       expect(await isResolved(read1R1)).toBe(true);
       expect(await isResolved(read2R1)).toBe(true);
     });
+
+    it("should correctly use the ResourceID getter", async () => {
+      const operations: Array<{ finish(): void }> = [];
+
+      @RWMutexRepo
+      class TestRepository {
+        private id = "1";
+
+        @ResourceIDGetter
+        getResourceID(_: string, args: any[]) {
+          if (args[0] === "self") return this.id;
+          return 2;
+        }
+
+        @Write
+        async writeMethod(target?: "self") {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+      }
+
+      const testRepository = new TestRepository();
+
+      const write1R1 = testRepository.writeMethod("self");
+      const write2R1 = testRepository.writeMethod("self");
+      const write3R1 = testRepository.writeMethod("self");
+
+      const write1R2 = testRepository.writeMethod();
+      const write2R2 = testRepository.writeMethod();
+      const write3R2 = testRepository.writeMethod();
+
+      await sleep(20);
+
+      expect(await isResolved(write1R1)).toBe(false);
+      expect(await isResolved(write2R1)).toBe(false);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      expect(operations.length).toBe(2);
+
+      operations[0]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(false);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[2]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[1]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[3]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[4]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(true);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[5]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(true);
+      expect(await isResolved(write3R2)).toBe(true);
+    });
   });
 
   describe("on static class", () => {
@@ -565,6 +668,103 @@ describe("RWMutexRepo", () => {
       expect(await isResolved(write1R1)).toBe(true);
       expect(await isResolved(read1R1)).toBe(true);
       expect(await isResolved(read2R1)).toBe(true);
+    });
+
+    it("should correctly use the ResourceID getter", async () => {
+      const operations: Array<{ finish(): void }> = [];
+
+      @RWMutexRepo
+      class TestRepository {
+        private static id = "1";
+
+        @ResourceIDGetter
+        static getResourceID(_: string, args: any[]) {
+          if (args[0] === "self") return this.id;
+          return 2;
+        }
+
+        @Write
+        static async writeMethod(target?: "self") {
+          await new Promise<void>((resolve) => {
+            operations.push({ finish: () => resolve() });
+          });
+        }
+      }
+
+      const testRepository = TestRepository;
+
+      const write1R1 = testRepository.writeMethod("self");
+      const write2R1 = testRepository.writeMethod("self");
+      const write3R1 = testRepository.writeMethod("self");
+
+      const write1R2 = testRepository.writeMethod();
+      const write2R2 = testRepository.writeMethod();
+      const write3R2 = testRepository.writeMethod();
+
+      await sleep(20);
+
+      expect(await isResolved(write1R1)).toBe(false);
+      expect(await isResolved(write2R1)).toBe(false);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      expect(operations.length).toBe(2);
+
+      operations[0]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(false);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[2]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(false);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[1]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(false);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[3]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(false);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[4]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(true);
+      expect(await isResolved(write3R2)).toBe(false);
+
+      operations[5]!.finish();
+
+      expect(await isResolved(write1R1)).toBe(true);
+      expect(await isResolved(write2R1)).toBe(true);
+      expect(await isResolved(write3R1)).toBe(true);
+      expect(await isResolved(write1R2)).toBe(true);
+      expect(await isResolved(write2R2)).toBe(true);
+      expect(await isResolved(write3R2)).toBe(true);
     });
   });
 });

@@ -1,9 +1,14 @@
 import { getOperationFunctions } from "./metadata-decorators/operation-functions";
 import { isReadOperation } from "./metadata-decorators/read-decorator";
 import { getResourceIdIndex } from "./metadata-decorators/resource-id";
+import { getResourceIDGetter } from "./metadata-decorators/resource-id-getter";
 import { isWriteOperation } from "./metadata-decorators/write-decorator";
 import { RWMutexStore } from "./rw-mutex-store";
 import { removeDuplicates } from "./utilities/remove-duplicates";
+import { validateResourceID } from "./utilities/validate-resource-id";
+
+type ResourceID = string | number | symbol | Array<string | number | symbol>;
+type ResourceGetter = (methodName: string | symbol, args: any[]) => ResourceID;
 
 /**
  * Adds mutual exclusion mechanism with read and write lock types
@@ -26,6 +31,14 @@ export const RWMutexRepo = (
   );
   mutexStore = mutexStore ?? new RWMutexStore();
 
+  const classResourceIDGetterName = getResourceIDGetter(
+    RepositoryClass.prototype
+  );
+
+  const classResourceIDGetter = classResourceIDGetterName
+    ? (RepositoryClass.prototype[classResourceIDGetterName] as ResourceGetter)
+    : undefined;
+
   for (const operationFunctionName of operationFunctionNames) {
     if (!(operationFunctionName in RepositoryClass.prototype)) continue;
 
@@ -44,7 +57,14 @@ export const RWMutexRepo = (
       operationFunctionName
     );
 
-    if ((isRead || isWrite) && resourceIdIndex !== undefined) {
+    const idGetter =
+      resourceIdIndex !== undefined
+        ? function (_: any, args: any[]) {
+            return args[resourceIdIndex] as ResourceID;
+          }
+        : classResourceIDGetter;
+
+    if ((isRead || isWrite) && idGetter !== undefined) {
       const acquireWriteLocks = async (
         resourceIds: Array<string | number | symbol>
       ) => {
@@ -76,11 +96,8 @@ export const RWMutexRepo = (
       RepositoryClass.prototype[operationFunctionName] = async function (
         ...args: any[]
       ) {
-        const resourceID:
-          | string
-          | number
-          | symbol
-          | Array<string | number | symbol> = args[resourceIdIndex];
+        const resourceID = idGetter.apply(this, [operationFunctionName, args]);
+        validateResourceID(resourceID);
         const resourceIDList = removeDuplicates(
           Array.isArray(resourceID) ? resourceID : [resourceID]
         );
@@ -109,9 +126,9 @@ export const RWMutexRepo = (
         );
       }
 
-      if (resourceIdIndex === undefined) {
+      if (idGetter === undefined) {
         console.warn(
-          `Method "${operationFunctionName.toString()}" is not decorated with @ResourceID despite bring marked as a subject to the RWMutex. This could be a mistake, make sure to add the appropriate decorators to this method.`
+          `Method "${operationFunctionName.toString()}" is not decorated with @ResourceID nor @ResourceIDGetter despite bring marked as a subject to the RWMutex. This could be a mistake, make sure to add the appropriate decorators to this method.`
         );
       }
     }, 0);
