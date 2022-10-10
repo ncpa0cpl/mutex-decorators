@@ -38,11 +38,19 @@
     "test:tsc": "tsc --noEmit",
     "build": "node ./scripts/build.mjs"
   },
-  "keywords": [],
+  "keywords": [
+    "mutex",
+    "rwmutex",
+    "lock",
+    "rwlock",
+    "class",
+    "decorator",
+    "queue"
+  ],
   "repository": {
-    "url": ""
+    "url": "https://github.com/ncpa0cpl/mutex-decorators"
   },
-  "description": "",
+  "description": "Add mutual exclusion to class methods by decorating them.",
   "license": "MIT",
   "author": {
     "name": "Szymon Bretner (ncpa0cpl)",
@@ -50,9 +58,6 @@
   },
   "dependencies": {
     "@ncpa0cpl/mutex.js": "^1.0.1",
-    "reflect-metadata": "^0.1.13"
-  },
-  "peerDependencies": {
     "reflect-metadata": "^0.1.13"
   }
 }

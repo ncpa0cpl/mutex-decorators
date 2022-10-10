@@ -1,5 +1,14 @@
 import { MetadataKey } from "./metadata-keys";
 
+/**
+ * Argument decorator used along with the `@RWMutexRepo` and
+ * `@MutexRepo` decorators, marks the decorated method argument
+ * as the Resource ID, that will be used to distinguish between
+ * different resources, and acquire locks per each resource.
+ *
+ * The decorated arguments must be a string, number, symbol or an
+ * Array of those.
+ */
 export const ResourceID = (
   target: object,
   propertyKey: string | symbol,
